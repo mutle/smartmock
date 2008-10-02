@@ -8,6 +8,14 @@ module Smartmock
     mock(klass)
   end
   
+  def self.active_record?(klass)
+    defined?(ActiveRecord) and klass.superclass == ActiveRecord::Base
+  end
+  
+  def self.data_mapper?(klass)
+    defined?(DataMapper) and klass.respond_to?(:properties)
+  end
+  
   class MockProxy
     def initialize(klass)
       @klass = klass
@@ -24,65 +32,30 @@ module Smartmock
     end
   end
   
-  module Next
-    module ClassMethods
-      def smartmock_new(attribs={})
-        @last_mock = Mock.new(self, attribs)
-        if @smartmock_stubs
-          @last_mock.stubs = @smartmock_stubs
-        end
-        revert_smartmock
-        @last_mock
-      end
-      
-      def last_smartmock
-        @last_mock
-      end
-      
-      def smartmock_stub(stubs)
-        @smartmock_stubs = stubs
-      end
-      
-      
-      def revert_smartmock
-        class << self
-          alias new orig_new
-        end
-      end
-      
-      def setup_smartmock
-        class << self
-          alias orig_new new
-          alias new smartmock_new
-        end
-      end
-    end
-
-    module InstanceMethods
-      
-    end
-
-    def self.included(receiver)
-      receiver.extend         ClassMethods
-      receiver.send :include, InstanceMethods
-    end
-  end
-  
   class Mock
+    attr_accessor :klass
+    
     def initialize(klass, attribs={})
       @attributes = {}
       @stubs = {}
       @dirty = false
-      @columns = if defined?(ActiveRecord) and klass.superclass == ActiveRecord::Base
+      @columns = if Smartmock.active_record?(klass)
         klass.columns.map { |col| col.name.to_s }
-      elsif defined?(DataMapper) and klass.respond_to?(:properties)
+      elsif Smartmock.data_mapper?(klass)
         klass.properties.map { |prop| prop.name.to_s }
       else
         []
       end
+      @columns << "id"
       attribs.each do |key, val|
+        @columns << key.to_s unless @columns.include?(key.to_s)
         self.send("#{key}=".to_sym, val)
       end
+      @klass = klass
+    end
+    
+    def id
+      @attributes["id"]
     end
     
     def stubs=(stubs)
@@ -116,13 +89,5 @@ module Smartmock
     end
     alias_method :save!, :save
   end
-end
-
-
-class Object
-  def smartmock_next(klass, stubs={})
-    klass.send :include, Smartmock::Next
-    klass.setup_smartmock
-    klass.smartmock_stub(stubs)
-  end
+  
 end

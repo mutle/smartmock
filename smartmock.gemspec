@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.description = %q{Model Mocking done right}
   s.email = ["mkraus@engineyard.com"]
   s.extra_rdoc_files = ["README.txt"]
-  s.files = ['MIT-LICENSE', 'lib/smartmock.rb', 'lib/smartmock/mock.rb']
+  s.files = ['MIT-LICENSE', 'lib/smartmock.rb', 'lib/smartmock/mock.rb', 'lib/smartmock/helpers.rb']
   s.has_rdoc = true
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
